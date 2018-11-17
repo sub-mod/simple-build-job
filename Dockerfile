@@ -1,5 +1,6 @@
-ARG MYAPP_IMAGE=centos:7
-FROM $MYAPP_IMAGE
+ARG  CODE_VERSION=7
+FROM centos:${CODE_VERSION}
+
 #FROM nvidia/cuda:9.0-cudnn7-devel-centos7
 
 MAINTAINER Subin Modeel <smodeel@redhat.com>

@@ -112,19 +112,19 @@
         {
             "name": "SOURCE_REPOSITORY",
             "description": "Git repository for source.",
-            "value": "https://github.com/thoth-station/simple-build-s2i.git",
+            "value": "https://github.com/sub-mod/simple-build-job.git",
             "required": true
         },
         {
             "name": "S2I_IMAGE",
             "description": "registry.fedoraproject.org/f27/s2i-core, registry.fedoraproject.org/f28/s2i-core, registry.access.redhat.com/rhscl/s2i-core-rhel7",
-            "value": "registry.fedoraproject.org/f27/s2i-core",
+            "value": "openshift/base-centos7",
             "required": true
         },
         {
             "name": "DOCKER_FILE_PATH",
-            "description": "Dockerfile.fedora27, Dockerfile.fedora28, Dockerfile.rhel75.",
-            "value": "Dockerfile.fedora27",
+            "description": "Dockerfile, Dockerfile.fedora28, Dockerfile.rhel75.",
+            "value": "Dockerfile",
             "required": true
         },
         {
