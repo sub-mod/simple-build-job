@@ -10,3 +10,54 @@ set -e
 set -o pipefail
 
 echo "run...."
+command_exists () { type "$1" &> /dev/null ; }
+file_exists () { test -f $1 ; }
+folder_exists () { test -d $1 ; }
+MY_EXIT_1() {  exit 1; }
+MY_RETURN_1() {  return 1; }
+MY_RETURN_0() {  return 0; }
+env_check () {
+  exit_function=MY_RETURN_0;
+  # If exit function is passed as $2 use it.
+  if [[ ! -z "$2" ]];then exit_function=$2 ;fi 
+  if [ $# -eq 0 ];then printf "No arguments supplied. \nUsage:\n env_check \"ENV_NAME\" [\"exit_function\"]\n" && $exit_function;fi
+  param=$1;
+  # The exclamation mark makes param to get the value of the variable with that name.
+  if [[ -z "${!param}" ]];then echo "$1 is undefined" && $exit_function; else echo "$1 = "${!param} ;fi 
+}
+
+
+### These ENVs are used in build/publish logic
+env_check TEST_LOOP MY_EXIT_1
+env_check HOST_ON_HTTP_SERVER MY_EXIT_1
+
+#Dev Mode
+if [[ $TEST_LOOP = "y" ]]
+then
+	echo "####################################"
+	echo "      DEV/TEST MODE.....       	  "
+	echo "####################################"
+    echo "Starting a infinite while loop to debug in console terminal\n"
+    while :
+	do
+		echo "Press [CTRL+C] to stop.."
+		sleep 1
+	done
+fi
+
+
+env_check CUSTOM_BUILD
+eval "$CUSTOM_BUILD" 2>&1 
+
+
+### enable HOST_ON_HTTP_SERVER only with deploymentConfig(i.e build-dc.json) and NOT with Jobs. 
+if [[ $HOST_ON_HTTP_SERVER = "y" ]]
+then
+	echo "Starting httpserver to host the binary...\n"
+    cd /workspace/
+	if [[ $PYTHON_VERSION = "2.7" ]] ; then 
+		python -m SimpleHTTPServer $PORT ; 
+	else python -m http.server $PORT ; 
+	fi
+fi
+

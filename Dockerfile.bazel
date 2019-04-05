@@ -1,0 +1,25 @@
+FROM centos:6
+
+MAINTAINER Subin Modeel <smodeel@redhat.com>
+
+USER root
+
+ENV BAZEL_VERSION=$LIBRARY_VERSION
+ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0
+
+RUN yum install -y java-1.8.0-openjdk-devel wget which findutils binutils gcc tar gzip zip unzip java java-devel git clang zlib-devel gcc-c++ \
+	&& yum install -y centos-release-scl \
+	&& yum install -y devtoolset-7 \
+	&& scl enable devtoolset-7 bash \
+	&& mkdir -p /tmp/bazel \
+	&& cd /tmp/bazel \
+	&& wget -q https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-dist.zip \
+	&& chmod a+x bazel*.zip \
+	&& unzip bazel*.zip \
+	&& export JAVA_HOME=/usr/lib/jvm/java-1.8.0 \
+	&& ./compile.sh
+
+# TODO: Set the default CMD for the image
+CMD ["/usr/libexec/s2i/usage"]
+
+

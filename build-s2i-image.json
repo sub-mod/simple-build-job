@@ -2,10 +2,10 @@
     "kind": "Template",
     "apiVersion": "v1",
     "metadata": {
-        "name": "simple-build-image",
+        "name": "build-s2i-image",
         "annotations": {
-            "description": "Template to build simple build images.",
-            "tags": "simple-build-image"
+            "description": "Template to build simple s2i base images for build images.",
+            "tags": "build-s2i-image"
         }
     },
     "objects": [
@@ -15,7 +15,7 @@
             "metadata": {
                 "name": "${APPLICATION_NAME}",
                 "labels": {
-                    "appTypes": "simple-build-image",
+                    "appTypes": "build-s2i-image",
                     "appName": "${APPLICATION_NAME}"
                 }
             },
@@ -29,9 +29,9 @@
             "kind": "BuildConfig",
             "apiVersion": "v1",
             "metadata": {
-                "name": "${APPLICATION_NAME}",
+                "name": "${APPLICATION_NAME}-core",
                 "labels": {
-                    "appTypes": "simple-build-image",
+                    "appTypes": "build-s2i-image",
                     "appName": "${APPLICATION_NAME}"
                 }
             },
@@ -56,7 +56,7 @@
                         "uri": "${SOURCE_REPOSITORY}",
                         "ref": "${SOURCE_REPOSITORY_BRANCH}"
                     },
-                    "contextDir": "${SOURCE_REPOSITORY_CONTEXT_DIR}"
+                    "contextDir": "${SOURCE_REPOSITORY_CONTEXT_DIR}/core"
                 },
                 "strategy": {
                     "type": "Docker",
@@ -64,33 +64,77 @@
                         "noCache": true,
                         "dockerfilePath": "${DOCKER_FILE_PATH}",
                         "from": {
-                            "kind": "${S2I_BASE_IMAGE_KIND}",
-                            "name": "${S2I_BASE_IMAGE}"
-                        },
-                        "env": [
-                                    {
-                                        "name": "TEST_LOOP",
-                                        "value": "${TEST_LOOP}"
-                                    },
-                                    {
-                                        "name": "HOST_ON_HTTP_SERVER",
-                                        "value": "${HOST_ON_HTTP_SERVER}"
-                                    },
-                                    {
-                                        "name": "LIBRARY_VERSION",
-                                        "value": "${LIBRARY_VERSION}"
-                                    },
-                                    {
-                                        "name": "CUSTOM_BUILD",
-                                        "value": "${CUSTOM_BUILD}"
-                                    }
-                        ]
+                            "kind": "DockerImage",
+                            "name": "${BASE_IMAGE}"
+                        }
                     }
                 },
                 "output": {
                     "to": {
                         "kind": "ImageStreamTag",
-                        "name": "${APPLICATION_NAME}:{APPLICATION_IMAGE_TAG}"
+                        "name": "${APPLICATION_NAME}:core"
+                    }
+                },
+                "resources": {
+                    "limits": {
+                        "cpu": "4",
+                        "memory": "8Gi"
+                    },
+                    "requests": {
+                        "cpu": "4",
+                        "memory": "8Gi"
+                    }
+                }
+            }
+        },
+        {
+            "kind": "BuildConfig",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${APPLICATION_NAME}-base",
+                "labels": {
+                    "appTypes": "build-s2i-image",
+                    "appName": "${APPLICATION_NAME}"
+                }
+            },
+            "spec": {
+                "triggers": [
+                    {
+                        "type": "ConfigChange"
+                    },
+                    {
+                        "type": "ImageChange"
+                    },
+                    {
+                        "type": "Generic",
+                        "generic" : {
+                            "secret": "${GENERIC_WEBHOOK_SECRET}"
+                        }
+                    }
+                ],
+                "source": {
+                    "type": "Git",
+                    "git": {
+                        "uri": "${SOURCE_REPOSITORY}",
+                        "ref": "${SOURCE_REPOSITORY_BRANCH}"
+                    },
+                    "contextDir": "${SOURCE_REPOSITORY_CONTEXT_DIR}/base"
+                },
+                "strategy": {
+                    "type": "Docker",
+                    "dockerStrategy": {
+                        "noCache": true,
+                        "dockerfilePath": "${DOCKER_FILE_PATH}",
+                        "from": {
+                            "kind": "ImageStreamTag",
+                            "name": "${APPLICATION_NAME}:core"
+                        }
+                    }
+                },
+                "output": {
+                    "to": {
+                        "kind": "ImageStreamTag",
+                        "name": "${APPLICATION_NAME}:base"
                     }
                 },
                 "resources": {
@@ -110,21 +154,14 @@
         {
             "name": "APPLICATION_NAME",
             "description": "The name of the application.",
-            "value": "simple-build-image",
-            "from": "[a-zA-Z0-9]{10}",
-            "required": true
-        },
-        {
-            "name": "APPLICATION_IMAGE_TAG",
-            "description": "The tag of application image.",
-            "value": "1",
+            "value": "build-s2i-image",
             "from": "[a-zA-Z0-9]{10}",
             "required": true
         },
         {
             "name": "SOURCE_REPOSITORY",
             "description": "Git repository for source.",
-            "value": "https://github.com/sub-mod/simple-build-job.git",
+            "value": "https://github.com/sub-mod/s2i-base-container.git",
             "required": true
         },
         {
@@ -140,51 +177,21 @@
             "required": true
         },
         {
-            "name": "S2I_BASE_IMAGE",
-            "description": "registry.fedoraproject.org/f27/s2i-core, registry.fedoraproject.org/f28/s2i-core, registry.access.redhat.com/rhscl/s2i-core-rhel7",
-            "value": "build-s2i-image:base",
-            "required": true
-        },
-        {
-            "name": "S2I_BASE_IMAGE_KIND",
-            "description": "DockerImage, ImageStreamTag",
-            "value": "ImageStreamTag",
+            "name": "BASE_IMAGE",
+            "description": "rhel7, fedora:29",
+            "value": "centos:6",
             "required": true
         },
         {
             "name": "DOCKER_FILE_PATH",
             "description": "Dockerfile, Dockerfile.fedora28, Dockerfile.rhel75.",
-            "value": "Dockerfile.bazel",
-            "required": true
-        },
-        {
-            "name": "TEST_LOOP",
-            "description": "USE ONLY with DeploymentConfig.(y or n).If y then start a while loop.If y then http won't start.",
-            "value": "n",
-            "required": true
-        },
-        {
-            "name": "HOST_ON_HTTP_SERVER",
-            "description": "USE ONLY with DeploymentConfig.(y or n)If y then http server.",
-            "value": "n",
+            "value": "Dockerfile.rhel6",
             "required": true
         },
         {
             "name": "GENERIC_WEBHOOK_SECRET",
             "description": "A secret string used to configure the Generic webhook.",
             "value": "build-secret",
-            "required": true
-        },
-        {
-            "name": "LIBRARY_VERSION",
-            "description": "LIBRARY_VERSION",
-            "value": "0.22.0",
-            "required": true
-        },
-        {
-            "name": "CUSTOM_BUILD",
-            "description": "CUSTOM_BUILD",
-            "value": "cd /tmp/bazel && ./compile ",
             "required": true
         }
     ]
