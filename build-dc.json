@@ -1,0 +1,201 @@
+{
+    "kind": "Template",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "simple-build-dc",
+        "annotations": {
+            "description": "Template to create a pod For DEV work.",
+            "tags": "tf-app"
+        }
+    },
+    "objects": [
+        {
+            "kind": "DeploymentConfig",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${APPLICATION_NAME}",
+                "labels": {
+                    "appTypes": "simple-build-dc",
+                    "appName": "${APPLICATION_NAME}"
+                }
+            },
+            "spec": {
+                "strategy": {
+                    "type": "Rolling"
+                },
+                "triggers": [
+                    {
+                        "type": "ConfigChange"
+                    },
+                    {
+                        "type": "ImageChange",
+                        "imageChangeParams": {
+                            "automatic": true,
+                            "containerNames": [
+                                "${APPLICATION_NAME}"
+                            ],
+                            "from": {
+                                "kind": "ImageStreamTag",
+                                "name": "${BUILDER_IMAGESTREAM}"
+                            }
+                        }
+                    }
+                ],
+                "replicas": 1,
+                "selector": {
+                    "deploymentconfig": "${APPLICATION_NAME}"
+                },
+                "template": {
+                    "metadata": {
+                        "labels": {
+                            "appTypes": "simple-build-dc",
+                            "deploymentconfig": "${APPLICATION_NAME}",
+                            "appName": "${APPLICATION_NAME}"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "env": [
+                                    {
+                                        "name": "TEST_LOOP",
+                                        "value": "${TEST_LOOP}"
+                                    },
+                                    {
+                                        "name": "HOST_ON_HTTP_SERVER",
+                                        "value": "${HOST_ON_HTTP_SERVER}"
+                                    },
+                                    {
+                                        "name": "LIBRARY_VERSION",
+                                        "value": "${LIBRARY_VERSION}"
+                                    },
+                                    {
+                                        "name": "CUSTOM_BUILD",
+                                        "value": "${CUSTOM_BUILD}"
+                                    }
+                                ],
+                                "name": "${APPLICATION_NAME}",
+                                "image": "${BUILDER_IMAGESTREAM}",
+                                "command": ["/tmp/utils/loop.sh"],
+                                "ports": [
+                                    {
+                                        "containerPort": 8080,
+                                        "protocol": "TCP"
+                                    }
+                                ],
+                               "resources": {
+                                    "limits": {
+                                        "cpu": "6",
+                                        "memory": "8Gi"
+                                    },
+                                    "requests": {
+                                        "cpu": "6",
+                                        "memory": "8Gi"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "kind": "Service",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${APPLICATION_NAME}",
+                "labels": {
+                    "appTypes": "simple-build-dc",
+                    "appName": "${APPLICATION_NAME}"
+                }
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "8080-tcp",
+                        "protocol": "TCP",
+                        "port": 8080,
+                        "targetPort": 8080
+                    }
+                ],
+                "selector": {
+                    "deploymentconfig": "${APPLICATION_NAME}"
+                }
+            }
+        },
+        {
+            "kind": "Route",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${APPLICATION_NAME}",
+                "labels": {
+                    "appTypes": "simple-build-dc",
+                    "appName": "${APPLICATION_NAME}"
+                }
+            },
+            "spec": {
+                "host": "",
+                "to": {
+                    "kind": "Service",
+                    "name": "${APPLICATION_NAME}",
+                    "weight": 100
+                },
+                "port": {
+                    "targetPort": "8080-tcp"
+                }
+            }
+        }
+    ],
+    "parameters": [
+        {
+            "name": "APPLICATION_NAME",
+            "description": "The name of the application.",
+            "value": "simple-build-dc",
+            "from": "[a-zA-Z0-9]{10}",
+            "required": true
+        },
+        {
+            "name": "SOURCE_REPOSITORY",
+            "description": "Git repository for source.",
+            "value": "https://github.com/sub-mod/empty-repo.git",
+            "required": true
+        },
+        {
+            "name": "BUILDER_IMAGESTREAM",
+            "description": "tensorflow-build-image-fc27-36:latest, tensorflow-build-image-rhel75-36:latest",
+            "value": "",
+            "required": true
+        },
+        {
+            "name": "TEST_LOOP",
+            "description": "USE ONLY with DeploymentConfig.(y or n).If y then start a while loop.If y then http won't start.",
+            "value": "n",
+            "required": true
+        },
+        {
+            "name": "HOST_ON_HTTP_SERVER",
+            "description": "USE ONLY with DeploymentConfig.(y or n)If y then http server.",
+            "value": "n",
+            "required": true
+        },
+        {
+            "name": "GENERIC_WEBHOOK_SECRET",
+            "description": "A secret string used to configure the Generic webhook.",
+            "value": "build-secret",
+            "required": true
+        },
+        {
+            "name": "LIBRARY_VERSION",
+            "description": "LIBRARY_VERSION",
+            "value": "0.22.0",
+            "required": true
+        },
+        {
+            "name": "CUSTOM_BUILD",
+            "description": "CUSTOM_BUILD",
+            "value": "cd /tmp/bazel && ./compile ",
+            "required": true
+        }
+    ]
+}
+

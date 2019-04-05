@@ -7,6 +7,9 @@ USER root
 ENV BAZEL_VERSION=$LIBRARY_VERSION
 ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0
 
+COPY ./utils/ /tmp/utils/
+## sourcestrategy doesnt work because git clone doesnt work here
+
 RUN yum install -y java-1.8.0-openjdk-devel wget which findutils binutils gcc tar gzip zip unzip java java-devel git clang zlib-devel gcc-c++ \
 	&& yum install -y centos-release-scl \
 	&& yum install -y devtoolset-7 \
@@ -16,8 +19,14 @@ RUN yum install -y java-1.8.0-openjdk-devel wget which findutils binutils gcc ta
 	&& wget -q https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-dist.zip \
 	&& chmod a+x bazel*.zip \
 	&& unzip bazel*.zip \
-	&& export JAVA_HOME=/usr/lib/jvm/java-1.8.0 \
-	&& ./compile.sh
+	&& export JAVA_HOME=/usr/lib/jvm/java-1.8.0
+
+
+USER 1001
+# Make the default PWD somewhere that the user can write. This is
+# useful when connecting with 'oc run' and starting a 'spark-shell',
+# which will likely try to create files and directories in PWD and
+# error out if it cannot.
 
 # TODO: Set the default CMD for the image
 CMD ["/usr/libexec/s2i/usage"]
