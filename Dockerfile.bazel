@@ -7,7 +7,7 @@ USER root
 ENV BAZEL_VERSION=$LIBRARY_VERSION
 ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0
 
-COPY ./utils/ /tmp/utils/
+COPY ./utils/ /utils/
 ## sourcestrategy doesnt work because git clone doesnt work here
 
 RUN yum install -y java-1.8.0-openjdk-devel wget which findutils binutils gcc tar gzip zip unzip java java-devel git clang zlib-devel gcc-c++ \

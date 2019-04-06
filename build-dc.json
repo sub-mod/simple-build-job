@@ -76,7 +76,7 @@
                                 ],
                                 "name": "${APPLICATION_NAME}",
                                 "image": "${BUILDER_IMAGESTREAM}",
-                                "command": ["/tmp/utils/loop.sh"],
+                                "command": ["/utils/entrpoint", "/utils/loop.sh"],
                                 "ports": [
                                     {
                                         "containerPort": 8080,
@@ -163,13 +163,13 @@
         {
             "name": "BUILDER_IMAGESTREAM",
             "description": "tensorflow-build-image-fc27-36:latest, tensorflow-build-image-rhel75-36:latest",
-            "value": "",
+            "value": "simple-build-image:1",
             "required": true
         },
         {
             "name": "TEST_LOOP",
             "description": "USE ONLY with DeploymentConfig.(y or n).If y then start a while loop.If y then http won't start.",
-            "value": "n",
+            "value": "y",
             "required": true
         },
         {

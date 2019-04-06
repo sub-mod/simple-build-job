@@ -79,10 +79,6 @@
                                     {
                                         "name": "LIBRARY_VERSION",
                                         "value": "${LIBRARY_VERSION}"
-                                    },
-                                    {
-                                        "name": "CUSTOM_BUILD",
-                                        "value": "${CUSTOM_BUILD}"
                                     }
                         ]
                     }
@@ -90,7 +86,79 @@
                 "output": {
                     "to": {
                         "kind": "ImageStreamTag",
-                        "name": "${APPLICATION_NAME}:${APPLICATION_IMAGE_TAG}"
+                        "name": "${APPLICATION_NAME}:{APPLICATION_IMAGE_TAG}"
+                    }
+                },
+                "resources": {
+                    "limits": {
+                        "cpu": "4",
+                        "memory": "8Gi"
+                    },
+                    "requests": {
+                        "cpu": "4",
+                        "memory": "8Gi"
+                    }
+                }
+            }
+        },
+        {
+            "kind": "BuildConfig",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${APPLICATION_NAME}-runtime",
+                "labels": {
+                    "appTypes": "simple-build-image",
+                    "appName": "${APPLICATION_NAME}"
+                }
+            },
+            "spec": {
+                "triggers": [
+                    {
+                        "type": "ConfigChange"
+                    },
+                    {
+                        "type": "ImageChange"
+                    },
+                    {
+                        "type": "Generic",
+                        "generic" : {
+                            "secret": "${GENERIC_WEBHOOK_SECRET}"
+                        }
+                    }
+                ],
+                "source": {
+                    "type": "Dockerfile",
+                    "dockerfile": "FROM ${APPLICATION_RUNTIME_IMAGE}:latest\nCOPY bazel /deployments/bazel",
+                    "images": [
+                        {
+                            "from": {
+                                "kind": "ImageStreamTag",
+                                "name": "${APPLICATION_NAME}:{APPLICATION_IMAGE_TAG}"
+                            },
+                            "paths": [
+                                {
+                                    "sourcePath": "/tmp/bazel/output/bazel",
+                                    "destinationDir": "."
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "strategy": {
+                    "type": "Docker",
+                    "dockerStrategy": {
+                        "noCache": true,
+                        "dockerfilePath": "${DOCKER_FILE_PATH}",
+                        "from": {
+                            "kind": "DockerImage",
+                            "name": "${APPLICATION_RUNTIME_IMAGE}"
+                        }
+                    }
+                },
+                "output": {
+                    "to": {
+                        "kind": "ImageStreamTag",
+                        "name": "${APPLICATION_NAME}:{APPLICATION_IMAGE_TAG}"
                     }
                 },
                 "resources": {
@@ -118,6 +186,13 @@
             "name": "APPLICATION_IMAGE_TAG",
             "description": "The tag of application image.",
             "value": "1",
+            "from": "[a-zA-Z0-9]{10}",
+            "required": true
+        },
+        {
+            "name": "APPLICATION_RUNTIME_IMAGE",
+            "description": "The application runtime image.",
+            "value": "centos:6",
             "from": "[a-zA-Z0-9]{10}",
             "required": true
         },
@@ -179,12 +254,6 @@
             "name": "LIBRARY_VERSION",
             "description": "LIBRARY_VERSION",
             "value": "0.22.0",
-            "required": true
-        },
-        {
-            "name": "CUSTOM_BUILD",
-            "description": "CUSTOM_BUILD",
-            "value": "cd /tmp/bazel && ./compile ",
             "required": true
         }
     ]
