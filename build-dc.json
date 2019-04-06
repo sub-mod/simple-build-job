@@ -76,7 +76,7 @@
                                 ],
                                 "name": "${APPLICATION_NAME}",
                                 "image": "${BUILDER_IMAGESTREAM}",
-                                "command": ["/utils/entrpoint", "/utils/loop.sh"],
+                                "command": ["/utils/entrypoint", "/utils/loop.sh"],
                                 "ports": [
                                     {
                                         "containerPort": 8080,
