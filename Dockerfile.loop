@@ -1,0 +1,24 @@
+FROM centos:7
+
+MAINTAINER Subin Modeel <smodeel@redhat.com>
+
+USER root
+
+ENV BAZEL_VERSION=$LIBRARY_VERSION
+ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0
+
+COPY ./utils/ /utils/
+## sourcestrategy doesn't work because git clone doesnt work here
+
+
+
+USER 1001
+# Make the default PWD somewhere that the user can write. This is
+# useful when connecting with 'oc run' and starting a 'spark-shell',
+# which will likely try to create files and directories in PWD and
+# error out if it cannot.
+
+# TODO: Set the default CMD for the image
+CMD ["/usr/libexec/s2i/usage"]
+
+

@@ -1,0 +1,328 @@
+{
+    "kind": "Template",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "build-deploy-loop",
+        "annotations": {
+            "description": "Template to build simple build images.",
+            "tags": "build-deploy-loop"
+        }
+    },
+    "objects": [
+        {
+            "kind": "ImageStream",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${APPLICATION_NAME}",
+                "labels": {
+                    "appTypes": "build-deploy-loop",
+                    "appName": "${APPLICATION_NAME}"
+                }
+            },
+            "spec": {
+                "lookupPolicy": {
+                    "local": true
+                }
+            }
+        },
+        {
+            "kind": "BuildConfig",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${APPLICATION_NAME}",
+                "labels": {
+                    "appTypes": "build-deploy-loop",
+                    "appName": "${APPLICATION_NAME}"
+                }
+            },
+            "spec": {
+                "triggers": [
+                    {
+                        "type": "ConfigChange"
+                    },
+                    {
+                        "type": "ImageChange"
+                    },
+                    {
+                        "type": "Generic",
+                        "generic" : {
+                            "secret": "${GENERIC_WEBHOOK_SECRET}"
+                        }
+                    }
+                ],
+                "source": {
+                    "type": "Git",
+                    "git": {
+                        "uri": "${SOURCE_REPOSITORY}",
+                        "ref": "${SOURCE_REPOSITORY_BRANCH}"
+                    },
+                    "contextDir": "${SOURCE_REPOSITORY_CONTEXT_DIR}"
+                },
+                "strategy": {
+                    "type": "Docker",
+                    "dockerStrategy": {
+                        "noCache": true,
+                        "dockerfilePath": "${DOCKER_FILE_PATH}",
+                        "from": {
+                            "kind": "${S2I_BASE_IMAGE_KIND}",
+                            "name": "${S2I_BASE_IMAGE}"
+                        },
+                        "env": [
+                                    {
+                                        "name": "TEST_LOOP",
+                                        "value": "${TEST_LOOP}"
+                                    },
+                                    {
+                                        "name": "HOST_ON_HTTP_SERVER",
+                                        "value": "${HOST_ON_HTTP_SERVER}"
+                                    },
+                                    {
+                                        "name": "LIBRARY_VERSION",
+                                        "value": "${LIBRARY_VERSION}"
+                                    },
+                                    {
+                                        "name": "CUSTOM_BUILD",
+                                        "value": "${CUSTOM_BUILD}"
+                                    }
+                        ]
+                    }
+                },
+                "output": {
+                    "to": {
+                        "kind": "ImageStreamTag",
+                        "name": "${APPLICATION_NAME}:${APPLICATION_IMAGE_TAG}"
+                    }
+                },
+                "resources": {
+                    "limits": {
+                        "cpu": "4",
+                        "memory": "8Gi"
+                    },
+                    "requests": {
+                        "cpu": "4",
+                        "memory": "8Gi"
+                    }
+                }
+            }
+        }
+        {
+            "kind": "DeploymentConfig",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${APPLICATION_NAME}",
+                "labels": {
+                    "appTypes": "build-deploy-loop",
+                    "appName": "${APPLICATION_NAME}"
+                }
+            },
+            "spec": {
+                "strategy": {
+                    "type": "Rolling"
+                },
+                "triggers": [
+                    {
+                        "type": "ConfigChange"
+                    },
+                    {
+                        "type": "ImageChange",
+                        "imageChangeParams": {
+                            "automatic": true,
+                            "containerNames": [
+                                "${APPLICATION_NAME}"
+                            ],
+                            "from": {
+                                "kind": "ImageStreamTag",
+                                "name": "${APPLICATION_NAME}:${APPLICATION_IMAGE_TAG}"
+                            }
+                        }
+                    }
+                ],
+                "replicas": 1,
+                "selector": {
+                    "deploymentconfig": "${APPLICATION_NAME}"
+                },
+                "template": {
+                    "metadata": {
+                        "labels": {
+                            "appTypes": "build-deploy-loop",
+                            "deploymentconfig": "${APPLICATION_NAME}",
+                            "appName": "${APPLICATION_NAME}"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "env": [
+                                    {
+                                        "name": "TEST_LOOP",
+                                        "value": "${TEST_LOOP}"
+                                    },
+                                    {
+                                        "name": "HOST_ON_HTTP_SERVER",
+                                        "value": "${HOST_ON_HTTP_SERVER}"
+                                    },
+                                    {
+                                        "name": "LIBRARY_VERSION",
+                                        "value": "${LIBRARY_VERSION}"
+                                    },
+                                    {
+                                        "name": "CUSTOM_BUILD",
+                                        "value": "${CUSTOM_BUILD}"
+                                    }
+                                ],
+                                "name": "${APPLICATION_NAME}",
+                                "image": "${APPLICATION_NAME}:${APPLICATION_IMAGE_TAG}",
+                                "command": ["container-entrypoint", "/utils/loop1.sh"],
+                                "ports": [
+                                    {
+                                        "containerPort": 8080,
+                                        "protocol": "TCP"
+                                    }
+                                ],
+                               "resources": {
+                                    "limits": {
+                                        "cpu": "10",
+                                        "memory": "15Gi"
+                                    },
+                                    "requests": {
+                                        "cpu": "10",
+                                        "memory": "15Gi"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "kind": "Service",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${APPLICATION_NAME}",
+                "labels": {
+                    "appTypes": "build-deploy-loop",
+                    "appName": "${APPLICATION_NAME}"
+                }
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "8080-tcp",
+                        "protocol": "TCP",
+                        "port": 8080,
+                        "targetPort": 8080
+                    }
+                ],
+                "selector": {
+                    "deploymentconfig": "${APPLICATION_NAME}"
+                }
+            }
+        },
+        {
+            "kind": "Route",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${APPLICATION_NAME}",
+                "labels": {
+                    "appTypes": "build-deploy-loop",
+                    "appName": "${APPLICATION_NAME}"
+                }
+            },
+            "spec": {
+                "host": "",
+                "to": {
+                    "kind": "Service",
+                    "name": "${APPLICATION_NAME}",
+                    "weight": 100
+                },
+                "port": {
+                    "targetPort": "8080-tcp"
+                }
+            }
+        }
+    ],
+    "parameters": [
+        {
+            "name": "APPLICATION_NAME",
+            "description": "The name of the application.",
+            "value": "build-deploy-loop",
+            "from": "[a-zA-Z0-9]{10}",
+            "required": true
+        },
+        {
+            "name": "APPLICATION_IMAGE_TAG",
+            "description": "The tag of application image.",
+            "value": "1",
+            "from": "[a-zA-Z0-9]{10}",
+            "required": true
+        },
+        {
+            "name": "SOURCE_REPOSITORY",
+            "description": "Git repository for source.",
+            "value": "https://github.com/sub-mod/simple-build-job.git",
+            "required": true
+        },
+        {
+            "name": "SOURCE_REPOSITORY_BRANCH",
+            "description": "Git repository branch for source.",
+            "value": "master",
+            "required": true
+        },
+        {
+            "name": "SOURCE_REPOSITORY_CONTEXT_DIR",
+            "description": "Git repository context dir for source.",
+            "value": ".",
+            "required": true
+        },
+        {
+            "name": "S2I_BASE_IMAGE",
+            "description": "build-s2i-image:base, cuda:10.0-cudnn7-devel-rhel7",
+            "value": "cuda:10.0-cudnn7-devel-rhel7",
+            "required": true
+        },
+        {
+            "name": "S2I_BASE_IMAGE_KIND",
+            "description": "DockerImage, ImageStreamTag",
+            "value": "ImageStreamTag",
+            "required": true
+        },
+        {
+            "name": "DOCKER_FILE_PATH",
+            "description": "Dockerfile, Dockerfile.fedora28, Dockerfile.rhel75.",
+            "value": "Dockerfile.loop",
+            "required": true
+        },
+        {
+            "name": "TEST_LOOP",
+            "description": "USE ONLY with DeploymentConfig.(y or n).If y then start a while loop.If y then http won't start.",
+            "value": "n",
+            "required": true
+        },
+        {
+            "name": "HOST_ON_HTTP_SERVER",
+            "description": "USE ONLY with DeploymentConfig.(y or n)If y then http server.",
+            "value": "n",
+            "required": true
+        },
+        {
+            "name": "GENERIC_WEBHOOK_SECRET",
+            "description": "A secret string used to configure the Generic webhook.",
+            "value": "build-secret",
+            "required": true
+        },
+        {
+            "name": "LIBRARY_VERSION",
+            "description": "LIBRARY_VERSION",
+            "value": "0.22.0",
+            "required": true
+        },
+        {
+            "name": "CUSTOM_BUILD",
+            "description": "CUSTOM_BUILD",
+            "value": "cd /tmp/bazel && ./compile ",
+            "required": true
+        }
+    ]
+}
+
