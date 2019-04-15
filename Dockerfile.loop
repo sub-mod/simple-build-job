@@ -4,6 +4,7 @@ MAINTAINER Subin Modeel <smodeel@redhat.com>
 
 USER root
 
+## LIBRARY_VERSION comes from template
 ENV BAZEL_VERSION=$LIBRARY_VERSION
 ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0
 

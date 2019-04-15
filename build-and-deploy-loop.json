@@ -104,7 +104,7 @@
                     }
                 }
             }
-        }
+        },
         {
             "kind": "DeploymentConfig",
             "apiVersion": "v1",
@@ -168,7 +168,19 @@
                                     {
                                         "name": "CUSTOM_BUILD",
                                         "value": "${CUSTOM_BUILD}"
-                                    }
+                                    },
+									{
+										"name": "NVIDIA_VISIBLE_DEVICES",
+										"value": "all"
+									},
+									{
+										"name": "NVIDIA_DRIVER_CAPABILITIES",
+										"value": "compute,utility"
+									},
+									{
+										"name": "NVIDIA_REQUIRE_CUDA",
+										"value": "cuda>=9.0"
+									}
                                 ],
                                 "name": "${APPLICATION_NAME}",
                                 "image": "${APPLICATION_NAME}:${APPLICATION_IMAGE_TAG}",
@@ -179,16 +191,22 @@
                                         "protocol": "TCP"
                                     }
                                 ],
-                               "resources": {
-                                    "limits": {
-                                        "cpu": "10",
-                                        "memory": "15Gi"
-                                    },
-                                    "requests": {
-                                        "cpu": "10",
-                                        "memory": "15Gi"
-                                    }
-                                }
+								"securityContext": {
+									"allowPrivilegeEscalation": false,
+									"capabilities": {
+										"drop": [
+											"ALL"
+										]
+									},
+									"seLinuxOptions": {
+										"type": "nvidia_container_t"
+									}
+								},
+								"resources": {
+									"limits": {
+										"nvidia.com/gpu": 1
+									}
+								}
                             }
                         ]
                     }
