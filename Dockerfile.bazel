@@ -4,21 +4,27 @@ MAINTAINER Subin Modeel <smodeel@redhat.com>
 
 USER root
 
+ARG LIBRARY_VERSION=0.21.0
+ARG DEV_TOOLSET_VERSION=7
 ENV BAZEL_VERSION=$LIBRARY_VERSION
+ENV DEV_TOOLSET_VERSION=$DEV_TOOLSET_VERSION
 ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0
+ENV TINI_VERSION=v0.18.0
 
 COPY ./utils/ /utils/
 ## sourcestrategy doesnt work because git clone doesnt work here
 
 RUN yum install -y java-1.8.0-openjdk-devel wget which findutils binutils gcc tar gzip zip unzip java java-devel git clang zlib-devel gcc-c++ \
 	&& yum install -y centos-release-scl \
-	&& yum install -y devtoolset-7 \
-	&& scl enable devtoolset-7 bash \
+	&& yum install -y devtoolset-$DEV_TOOLSET_VERSION \
+	&& scl enable devtoolset-$DEV_TOOLSET_VERSION bash \
 	&& mkdir -p /tmp/bazel \
+    && mkdir -p /workspace \
 	&& cd /tmp/bazel \
 	&& wget -q https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-dist.zip \
 	&& chmod a+x bazel*.zip \
 	&& unzip bazel*.zip \
+    && mv bazel /workspace \
 	&& export JAVA_HOME=/usr/lib/jvm/java-1.8.0
 
 RUN  wget https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini -P /tmp \
